@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MUTAYIEB &mdash; Multi-Agent Orchestration Engine</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+<style>
+:root{
+  --bg:#0f172a; --panel:#1e293b; --panel-2:#172033;
+  --accent:#3b82f6; --accent-dark:#2563eb; --success:#10b981;
+  --danger:#ef4444; --text:#e2e8f0; --muted:#94a3b8; --border:#334155;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+#app{display:flex;flex-direction:column;height:100vh;width:100vw;}
+
+/* ---------- Header ---------- */
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 22px;background:rgba(30,41,59,0.6);border-bottom:1px solid var(--border);backdrop-filter:blur(8px);flex-shrink:0;z-index:20;}
+.header-left{display:flex;align-items:center;gap:14px;}
+#drawerToggle{background:transparent;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:16px;}
+#drawerToggle:hover{border-color:var(--accent);}
+.brand{font-size:20px;font-weight:800;letter-spacing:1px;color:#fff;}
+.brand .accent{color:var(--accent);}
+.header-right{display:flex;align-items:center;gap:12px;}
+.status-badge{background:rgba(16,185,129,0.12);color:var(--success);border:1px solid var(--success);padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success);}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:4px 10px 4px 4px;}
+.user-chip img{width:26px;height:26px;border-radius:50%;}
+.user-chip span{font-size:12px;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#signOutBtn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;}
+#signOutBtn:hover{color:var(--danger);border-color:var(--danger);}
+
+/* ---------- Layout ---------- */
+.main-layout{display:flex;flex:1;overflow:hidden;}
+#drawer{width:360px;min-width:360px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transition:margin-left .25s ease,width .25s ease,min-width .25s ease;}
+#drawer.collapsed{margin-left:-360px;}
+.drawer-section{padding:16px;border-bottom:1px solid var(--border);}
+.drawer-title{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;font-weight:700;}
+.mask-row{display:flex;align-items:center;justify-content:space-between;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+.mask-row:hover{border-color:var(--accent);}
+.mask-row.editing{border-color:var(--accent);background:rgba(59,130,246,0.08);}
+.mask-row-title{font-size:14px;font-weight:600;}
+.mask-row-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.mask-row-actions button{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px 6px;}
+.mask-row-actions button:hover{color:var(--danger);}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;width:100%;transition:background .15s;}
+.btn:hover{background:var(--accent-dark);}
+.btn:disabled{background:#475569;cursor:not-allowed;opacity:0.6;}
+.btn-success{background:var(--success);}
+.btn-success:hover{background:#0d9c6f;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.btn-small{width:auto;padding:6px 10px;font-size:12px;}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:600;margin-top:12px;}
+input[type=text],input[type=password],textarea,select{width:100%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 10px;font-size:13px;font-family:inherit;}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);}
+textarea{resize:vertical;min-height:60px;}
+.agent-card{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:12px;}
+.agent-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.agent-card-header span{font-size:12px;font-weight:700;color:var(--accent);}
+.remove-agent-btn{background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:13px;}
+.divider{height:1px;background:var(--border);margin:14px 0;}
+.agents-count{font-size:11px;color:var(--muted);margin-top:6px;text-align:center;}
+.field-hint{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* ---------- Main / Chat (Claude style, centered) ---------- */
+main#mainArea{flex:1;display:flex;flex-direction:column;overflow:hidden;background:radial-gradient(1200px 600px at 50% -10%, rgba(59,130,246,0.10), transparent 60%), var(--bg);}
+#chatColumn{flex:1;display:flex;flex-direction:column;max-width:840px;width:100%;margin:0 auto;min-height:0;padding:0 16px;}
+#maskPillsWrap{display:flex;align-items:center;gap:8px;padding:14px 0 6px;overflow-x:auto;flex-shrink:0;}
+#maskPillsInner{display:flex;gap:8px;overflow-x:auto;}
+.mask-pill{background:var(--panel);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;}
+.mask-pill.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 12px rgba(59,130,246,0.4);}
+.mask-pill:hover{border-color:var(--accent);}
+.new-mask-pill{background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;border:none;border-radius:20px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:transform .15s,box-shadow .15s;flex-shrink:0;}
+.new-mask-pill:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(139,92,246,0.45);}
+#transcript{flex:1;overflow-y:auto;padding:18px 0 24px;display:flex;flex-direction:column;gap:18px;}
+.empty-state{color:var(--muted);text-align:center;margin-top:90px;font-size:14px;line-height:2;}
+.user-bubble{align-self:flex-end;background:var(--accent);color:#fff;padding:12px 16px;border-radius:16px 16px 4px 16px;max-width:75%;font-size:14px;line-height:1.5;box-shadow:0 4px 14px rgba(59,130,246,0.25);}
+.response-block{width:100%;}
+.response-toolbar{display:flex;justify-content:flex-end;margin-bottom:12px;}
+.pdf-btn{background:var(--success);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;}
+.pdf-btn:hover{background:#0d9c6f;}
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;}
+.agent-output-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;overflow:auto;max-height:560px;}
+.agent-output-title{font-size:13px;font-weight:800;color:var(--accent);margin-bottom:2px;}
+.agent-output-model{font-size:11px;color:var(--muted);margin-bottom:10px;}
+.agent-output-body{font-size:13px;line-height:1.6;}
+.agent-output-body pre{background:#0b1220;padding:10px;border-radius:8px;overflow-x:auto;}
+.agent-output-body code{background:#0b1220;padding:2px 5px;border-radius:4px;font-size:12px;}
+.agent-output-body table{border-collapse:collapse;width:100%;}
+.agent-output-body th,.agent-output-body td{border:1px solid var(--border);padding:6px 8px;font-size:12px;}
+.agent-error{color:var(--danger);font-size:12px;font-weight:600;}
+.loading-status{align-self:center;color:var(--accent);font-size:13px;font-weight:700;padding:10px 18px;background:var(--panel);border:1px solid var(--border);border-radius:20px;}
+
+/* ---------- Prompt bar ---------- */
+#promptBar{padding:10px 0 18px;flex-shrink:0;}
+.prompt-box{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:10px 12px 10px 16px;display:flex;align-items:flex-end;gap:10px;transition:border-color .2s,box-shadow .2s;}
+.prompt-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,0.15),0 8px 30px rgba(0,0,0,0.35);}
+#promptInput{flex:1;min-height:44px;max-height:160px;background:transparent;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit;padding:8px 0;resize:none;}
+#sendBtn{width:auto;padding:10px 22px;border-radius:12px;flex-shrink:0;}
+.prompt-hint{text-align:center;font-size:11px;color:var(--muted);margin-top:8px;}
+
+/* ---------- Scrollbars ---------- */
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ---------- Overlays / Modals ---------- */
+.overlay{position:fixed;inset:0;background:rgba(2,6,23,0.85);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100;}
+.overlay.hidden{display:none;}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:28px;max-width:430px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.modal h2{margin:0 0 6px;font-size:20px;color:#fff;}
+.modal p{color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 16px;}
+.modal .btn{margin-top:10px;}
+.modal a{color:var(--accent);}
+#googleBtn{margin-top:8px;display:flex;justify-content:center;}
+.guest-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px;font-size:13px;cursor:pointer;width:100%;margin-top:10px;}
+.guest-btn:hover{border-color:var(--accent);color:var(--accent);}
+.key-status{font-size:12px;margin-top:10px;}
+.key-status.ok{color:var(--success);}
+.key-status.err{color:var(--danger);}
+.google-note{color:var(--muted);font-size:12px;line-height:1.6;margin-top:12px;border:1px dashed var(--border);border-radius:10px;padding:10px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="header-left">
+      <button id="drawerToggle" title="Toggle Mask Manager">&#9776;</button>
+      <div class="brand">MUTAYIEB<span class="accent"></span></div>
+    </div>
+    <div class="header-right">
+      <div class="status-badge"><span class="status-dot"></span><span id="statusText">Static Edge Engine</span></div>
+      <div class="user-chip" id="userChip" style="display:none;">
+        <img id="userAvatar" alt="avatar">
+        <span id="userName"></span>
+      </div>
+      <button id="signOutBtn" style="display:none;">Sign out</button>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <aside id="drawer">
+      <div class="drawer-section">
+        <div class="drawer-title">Mask Management</div>
+        <div id="maskListContainer"></div>
+        <button class="btn" id="newMaskBtn" style="margin-top:8px;">+ Create New Mask</button>
+      </div>
+      <div class="drawer-section" id="editorSection" style="display:none;">
+        <div class="drawer-title">Edit Mask</div>
+        <label>Mask Title</label>
+        <input type="text" id="maskTitleInput" placeholder="e.g. MUTAYIEB Master Engine">
+        <label>Primary Objective / Global System Instruction</label>
+        <textarea id="maskGlobalPromptInput" placeholder="Describe the overall objective for all agents..."></textarea>
+        <label>Custom API Key (Optional)</label>
+        <input type="password" id="maskApiKeyInput" placeholder="Leave blank to use your account key">
+        <div class="field-hint">Leave blank to use the OpenRouter key saved to your account.</div>
+        <button class="btn btn-outline" id="syncModelsBtn" style="margin-top:14px;">&#128260; Sync Models from OpenRouter</button>
+        <div class="divider"></div>
+        <div class="drawer-title">Agents</div>
+        <div id="agentsFormContainer"></div>
+        <div class="agents-count" id="agentsCountLabel"></div>
+        <button class="btn" id="addAgentBtn" style="margin-top:10px;">+ Add Agent</button>
+        <div class="divider"></div>
+        <button class="btn btn-success" id="saveMaskBtn">Save Mask</button>
+      </div>
+    </aside>
+
+    <main id="mainArea">
+      <div id="chatColumn">
+        <div id="maskPillsWrap">
+          <button class="new-mask-pill" id="newMaskPill">+ New Mask</button>
+          <div id="maskPillsInner"></div>
+        </div>
+        <div id="transcript">
+          <div class="empty-state" id="emptyState">Welcome to MUTAYIEB.<br>Pick a mask (or create a new one), then send a prompt to run your agent squad in parallel.</div>
+        </div>
+        <div id="promptBar">
+          <div class="prompt-box">
+            <textarea id="promptInput" placeholder="Ask your agent squad anything..."></textarea>
+            <button class="btn" id="sendBtn">Send</button>
+          </div>
+          <div class="prompt-hint">Enter to send &middot; Shift+Enter for a new line &middot; All agents run in parallel</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Login overlay -->
+<div class="overlay" id="loginOverlay">
+  <div class="modal" style="text-align:center;">
+    <div style="font-size:32px;font-weight:900;color:#fff;letter-spacing:1px;">MUTAYIEB<span style="color:#3b82f6;">.</span></div>
+    <p style="margin-top:10px;">Multi-Agent Orchestration Engine.<br>Sign in with Google to save your masks &amp; API key &mdash; enter your OpenRouter key only once.</p>
+    <div id="googleBtn"></div>
+    <button class="guest-btn" id="guestBtn">Continue as Guest (local only)</button>
+    <div class="google-note" id="googleNote" style="display:none;">Google login is disabled until you add your Google Client ID. Open <b>index.html</b>, find <b>GOOGLE_CLIENT_ID</b> near the top of the script, and paste your ID (see README).</div>
+  </div>
+</div>
+
+<!-- API key overlay -->
+<div class="overlay hidden" id="keyOverlay">
+  <div class="modal">
+    <h2>Enter your OpenRouter API Key</h2>
+    <p>Paste your key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>. We'll pull all available models automatically and store it on this device for your account &mdash; you won't have to type it again.</p>
+    <input type="password" id="apiKeyInput" placeholder="sk-or-v1-...">
+    <button class="btn" id="saveKeyBtn">Save Key &amp; Load Models</button>
+    <div class="key-status" id="keyStatus"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ================= CONFIG =================
+  // 1) Google login: create a Client ID at https://console.cloud.google.com/apis/credentials
+  //    (OAuth client ID, type "Web application", add your site URL as an Authorized JS origin)
+  //    then paste it below. Leave as-is to use Guest mode only.
+  var GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+
+  // 2) Set to true to route agent calls through the optional Vercel serverless proxy
+  //    (api/chat.js) using a server-side OPENROUTER_API_KEY env var instead of the browser key.
+  var USE_PROXY = false;
+
+  var STORAGE_PREFIX = 'mutayieb_';
+  var MAX_MASKS = 10;
+  var MAX_AGENTS = 10;
+
+  var DEFAULT_MODELS = [
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'qwen/qwen-2.5-coder-32b-instruct:free',
+    'deepseek/deepseek-r1:free',
+    'google/gemini-2.0-flash-lite-001'
+  ];
+
+  var currentUser = null;
+  var currentKey = '';
+  var state = { masks: [], activeMaskId: null, editingMaskId: null, availableModels: DEFAULT_MODELS.slice() };
+  var reportCounter = 0;
+
+  // ================= HELPERS =================
+  function uid() { return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9); }
+  function esc(s) { if (s === undefined || s === null) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function accountSuffix() { return currentUser ? (currentUser.sub + '_') : 'guest_'; }
+  function masksKey() { return STORAGE_PREFIX + accountSuffix() + 'masks'; }
+  function activeKey() { return STORAGE_PREFIX + accountSuffix() + 'active'; }
+  function keyStorage() { return STORAGE_PREFIX + accountSuffix() + 'openrouter_key'; }
+  function modelsKey() { return STORAGE_PREFIX + accountSuffix() + 'models'; }
+  function getUser() { try { return JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'user')); } catch (e) { return null; } }
+  function setStatus(t) { var el = document.getElementById('statusText'); if (el) el.textContent = t; }
+
+  // ================= DEFAULT MASK =================
+  function defaultMask() {
+    return {
+      id: uid(),
+      title: 'MUTAYIEB Master Engine',
+      globalPrompt: 'Perform an exhaustive, master-level structural and conceptual breakdown of the provided topic.',
+      apiKey: '',
+      agents: [
+        { id: uid(), title: 'Logic Expert', instructions: 'You are Agent 1: Deep-Dive Logic & Concept Explanation Expert.', model: 'meta-llama/llama-3.3-70b-instruct:free' },
+        { id: uid(), title: 'Mermaid Specialist', instructions: 'You are Agent 2: Mermaid Diagram & Mindmap Specialist. Always output valid ```mermaid code blocks for diagrams.', model: 'qwen/qwen-2.5-coder-32b-instruct:free' },
+        { id: uid(), title: 'Architecture Specialist', instructions: 'You are Agent 3: System & Structural Architecture Specialist.', model: 'qwen/qwen-2.5-coder-32b-instruct:free' },
+        { id: uid(), title: 'Formula & Syntax Master', instructions: 'You are Agent 4: Formula, Syntax & Cheat-Sheet Master.', model: 'deepseek/deepseek-r1:free' },
+        { id: uid(), title: 'Exam & Practice Simulator', instructions: 'You are Agent 5: Practice Questions, Edge Cases & Exam Simulator.', model: 'google/gemini-2.0-flash-lite-001' }
+      ]
+    };
+  }
+
+  // ================= STORAGE =================
+  function loadMasks() {
+    var raw = localStorage.getItem(masksKey());
+    if (!raw) {
+      var m = defaultMask();
+      state.masks = [m];
+      state.activeMaskId = m.id;
+      saveMasks();
+      localStorage.setItem(activeKey(), m.id);
+      return;
+    }
+    try { state.masks = JSON.parse(raw); } catch (e) { state.masks = [defaultMask()]; }
+    if (!state.masks || state.masks.length === 0) { state.masks = [defaultMask()]; saveMasks(); }
+    var activeStored = localStorage.getItem(activeKey());
+    var found = state.masks.some(function (mm) { return mm.id === activeStored; });
+    state.activeMaskId = found ? activeStored : state.masks[0].id;
+  }
+  function saveMasks() { localStorage.setItem(masksKey(), JSON.stringify(state.masks)); }
+  function getMaskById(id) {
+    for (var i = 0; i < state.masks.length; i++) { if (state.masks[i].id === id) return state.masks[i]; }
+    return null;
+  }
+
+  // ================= GOOGLE SIGN IN =================
+  function initGoogle() {
+    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.indexOf('YOUR_GOOGLE') === 0) {
+      document.getElementById('googleNote').style.display = 'block';
+      return;
+    }
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleCredentialResponse, auto_select: false });
+    google.accounts.id.renderButton(document.getElementById('googleBtn'), { theme: 'filled_black', size: 'large', shape: 'pill', width: 320 });
+  }
+  function handleCredentialResponse(resp) {
+    try {
+      var payload = JSON.parse(atob(resp.credential.split('.')[1]));
+      currentUser = { sub: payload.sub, email: payload.email, name: payload.name, picture: payload.picture };
+      localStorage.setItem(STORAGE_PREFIX + 'user', JSON.stringify(currentUser));
+      afterLogin();
+    } catch (e) { alert('Google sign-in failed: ' + e.message); }
+  }
+  function afterLogin() {
+    document.getElementById('loginOverlay').classList.add('hidden');
+    document.getElementById('userChip').style.display = 'flex';
+    document.getElementById('userName').textContent = currentUser.name || currentUser.email;
+    if (currentUser.picture) document.getElementById('userAvatar').src = currentUser.picture;
+    document.getElementById('signOutBtn').style.display = 'block';
+    loadMasks();
+    renderMaskList();
+    renderMaskPills();
+    currentKey = localStorage.getItem(keyStorage()) || '';
+    var cached = localStorage.getItem(modelsKey());
+    if (cached) { try { state.availableModels = JSON.parse(cached); } catch (e) {} }
+    if (!currentKey) {
+      openKeyModal();
+    } else {
+      setStatus('OpenRouter connected');
+      syncModelsSilent();
+    }
+  }
+  function signOut() {
+    if (window.google && google.accounts && google.accounts.id) { try { google.accounts.id.disableAutoSelect(); } catch (e) {} }
+    currentUser = null;
+    localStorage.removeItem(STORAGE_PREFIX + 'user');
+    location.reload();
+  }
+
+  // ================= MODELS =================
+  function fetchModels(key) {
+    return fetch('https://openrouter.ai/api/v1/models', {
+      headers: { 'Authorization': 'Bearer ' + key, 'HTTP-Referer': location.origin, 'X-Title': 'MUTAYIEB' }
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          var m = res.d && res.d.error && res.d.error.message ? res.d.error.message : ('HTTP ' + res.status);
+          throw new Error(m);
+        }
+        var list = Array.isArray(res.d.data) ? res.d.data : [];
+        return list.map(function (m) { return m.id; }).filter(Boolean).sort();
+      });
+  }
+  function syncModelsSilent() {
+    if (!currentKey) return;
+    fetchModels(currentKey).then(function (ids) {
+      if (ids && ids.length) { state.availableModels = ids; localStorage.setItem(modelsKey(), JSON.stringify(ids)); renderAgentsForm(); }
+    }).catch(function () {});
+  }
+  function syncModels() {
+    var btn = document.getElementById('syncModelsBtn');
+    var key = currentKey;
+    var mask = getMaskById(state.editingMaskId);
+    if (mask && mask.apiKey) key = mask.apiKey;
+    if (!key) { alert('No API key set. Please enter your OpenRouter key first.'); return; }
+    btn.disabled = true;
+    btn.textContent = 'Syncing...';
+    fetchModels(key).then(function (ids) {
+      if (ids && ids.length) {
+        state.availableModels = ids;
+        localStorage.setItem(modelsKey(), JSON.stringify(ids));
+        renderAgentsForm();
+        btn.innerHTML = '&#9989; Synced ' + ids.length + ' Models';
+      } else { btn.innerHTML = '&#9888; Sync Failed'; }
+      setTimeout(function () { btn.disabled = false; btn.innerHTML = '&#128260; Sync Models from OpenRouter'; }, 2500);
+    }).catch(function () {
+      btn.innerHTML = '&#9888; Sync Failed';
+      setTimeout(function () { btn.disabled = false; btn.innerHTML = '&#128260; Sync Models from OpenRouter'; }, 2500);
+    });
+  }
+
+  // ================= KEY MODAL =================
+  function openKeyModal() {
+    document.getElementById('keyOverlay').classList.remove('hidden');
+    document.getElementById('apiKeyInput').value = '';
+    document.getElementById('keyStatus').textContent = '';
+  }
+  function saveKey() {
+    var key = document.getElementById('apiKeyInput').value.trim();
+    var st = document.getElementById('keyStatus');
+    if (!key) { st.textContent = 'Please paste your key.'; st.className = 'key-status err'; return; }
+    st.textContent = 'Fetching models...';
+    st.className = 'key-status';
+    fetchModels(key).then(function (ids) {
+      if (ids && ids.length) {
+        currentKey = key;
+        localStorage.setItem(keyStorage(), key);
+        localStorage.setItem(modelsKey(), JSON.stringify(ids));
+        state.availableModels = ids;
+        document.getElementById('keyOverlay').classList.add('hidden');
+        renderAgentsForm();
+        renderMaskList();
+        renderMaskPills();
+        setStatus('OpenRouter connected · ' + ids.length + ' models');
+      } else {
+        st.textContent = 'Key valid but no models returned.'; st.className = 'key-status err';
+      }
+    }).catch(function (e) {
+      st.textContent = 'Could not reach OpenRouter: ' + e.message; st.className = 'key-status err';
+    });
+  }
+
+  // ================= RENDER: MASK LIST (drawer) =================
+  function renderMaskList() {
+    var container = document.getElementById('maskListContainer');
+    container.innerHTML = '';
+    state.masks.forEach(function (mask) {
+      var row = document.createElement('div');
+      row.className = 'mask-row' + (mask.id === state.editingMaskId ? ' editing' : '');
+      var info = document.createElement('div');
+      info.innerHTML = '<div class="mask-row-title">' + esc(mask.title) + '</div><div class="mask-row-sub">' + mask.agents.length + ' agent(s)</div>';
+      var actions = document.createElement('div');
+      actions.className = 'mask-row-actions';
+      var delBtn = document.createElement('button');
+      delBtn.innerHTML = '&#128465;';
+      delBtn.title = 'Delete Mask';
+      delBtn.addEventListener('click', function (ev) { ev.stopPropagation(); deleteMask(mask.id); });
+      actions.appendChild(delBtn);
+      row.appendChild(info);
+      row.appendChild(actions);
+      row.addEventListener('click', function () { openMaskEditor(mask.id); });
+      container.appendChild(row);
+    });
+    var newBtn = document.getElementById('newMaskBtn');
+    newBtn.disabled = state.masks.length >= MAX_MASKS;
+    newBtn.textContent = state.masks.length >= MAX_MASKS ? 'Max 10 Masks Reached' : '+ Create New Mask';
+  }
+  function deleteMask(id) {
+    if (state.masks.length <= 1) { alert('At least one Mask must remain.'); return; }
+    if (!confirm('Delete this Mask permanently?')) return;
+    state.masks = state.masks.filter(function (m) { return m.id !== id; });
+    if (state.activeMaskId === id) state.activeMaskId = state.masks[0].id;
+    if (state.editingMaskId === id) { state.editingMaskId = null; document.getElementById('editorSection').style.display = 'none'; }
+    saveMasks();
+    localStorage.setItem(activeKey(), state.activeMaskId);
+    renderMaskList();
+    renderMaskPills();
+  }
+  function createNewMask() {
+    if (state.masks.length >= MAX_MASKS) { alert('Maximum of 10 masks reached.'); return; }
+    var m = { id: uid(), title: 'New Mask ' + (state.masks.length + 1), globalPrompt: '', apiKey: '', agents: [] };
+    state.masks.push(m);
+    saveMasks();
+    renderMaskList();
+    renderMaskPills();
+    openMaskEditor(m.id);
+    document.getElementById('drawer').classList.remove('collapsed');
+  }
+
+  // ================= RENDER: MASK EDITOR =================
+  function openMaskEditor(id) {
+    state.editingMaskId = id;
+    var mask = getMaskById(id);
+    if (!mask) return;
+    document.getElementById('editorSection').style.display = 'block';
+    document.getElementById('maskTitleInput').value = mask.title || '';
+    document.getElementById('maskGlobalPromptInput').value = mask.globalPrompt || '';
+    document.getElementById('maskApiKeyInput').value = mask.apiKey || '';
+    renderAgentsForm();
+    renderMaskList();
+  }
+  function renderAgentsForm() {
+    var mask = getMaskById(state.editingMaskId);
+    var container = document.getElementById('agentsFormContainer');
+    container.innerHTML = '';
+    if (!mask) return;
+    mask.agents.forEach(function (agent, idx) {
+      var card = document.createElement('div');
+      card.className = 'agent-card';
+      var header = document.createElement('div');
+      header.className = 'agent-card-header';
+      header.innerHTML = '<span>AGENT ' + (idx + 1) + '</span>';
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-agent-btn';
+      removeBtn.innerHTML = '&#10005; Remove';
+      removeBtn.addEventListener('click', function () { removeAgent(idx); });
+      header.appendChild(removeBtn);
+      card.appendChild(header);
+      var titleLabel = document.createElement('label');
+      titleLabel.textContent = 'Agent Title';
+      titleLabel.style.marginTop = '4px';
+      var titleInput = document.createElement('input');
+      titleInput.type = 'text';
+      titleInput.value = agent.title || '';
+      titleInput.placeholder = 'e.g. Logic Expert';
+      titleInput.addEventListener('input', function () { agent.title = titleInput.value; });
+      card.appendChild(titleLabel);
+      card.appendChild(titleInput);
+      var instrLabel = document.createElement('label');
+      instrLabel.textContent = 'Specific Instructions (System Prompt)';
+      var instrInput = document.createElement('textarea');
+      instrInput.value = agent.instructions || '';
+      instrInput.placeholder = 'Describe this agent role...';
+      instrInput.addEventListener('input', function () { agent.instructions = instrInput.value; });
+      card.appendChild(instrLabel);
+      card.appendChild(instrInput);
+      var modelLabel = document.createElement('label');
+      modelLabel.textContent = 'Model';
+      var modelSelect = document.createElement('select');
+      modelSelect.className = 'model-select';
+      populateModelSelect(modelSelect, agent.model);
+      modelSelect.addEventListener('change', function () { agent.model = modelSelect.value; });
+      card.appendChild(modelLabel);
+      card.appendChild(modelSelect);
+      container.appendChild(card);
+    });
+    document.getElementById('agentsCountLabel').textContent = mask.agents.length + ' / ' + MAX_AGENTS + ' agents';
+    document.getElementById('addAgentBtn').disabled = mask.agents.length >= MAX_AGENTS;
+  }
+  function populateModelSelect(selectEl, selectedValue) {
+    selectEl.innerHTML = '';
+    var list = state.availableModels.slice();
+    if (selectedValue && list.indexOf(selectedValue) === -1) list.unshift(selectedValue);
+    list.forEach(function (modelId) {
+      var opt = document.createElement('option');
+      opt.value = modelId;
+      opt.textContent = modelId;
+      if (modelId === selectedValue) opt.selected = true;
+      selectEl.appendChild(opt);
+    });
+  }
+  function addAgent() {
+    var mask = getMaskById(state.editingMaskId);
+    if (!mask || mask.agents.length >= MAX_AGENTS) return;
+    mask.agents.push({ id: uid(), title: 'Agent ' + (mask.agents.length + 1), instructions: '', model: state.availableModels[0] || DEFAULT_MODELS[0] });
+    renderAgentsForm();
+  }
+  function removeAgent(idx) {
+    var mask = getMaskById(state.editingMaskId);
+    if (!mask) return;
+    mask.agents.splice(idx, 1);
+    renderAgentsForm();
+  }
+  function saveMaskForm() {
+    var mask = getMaskById(state.editingMaskId);
+    if (!mask) return;
+    mask.title = document.getElementById('maskTitleInput').value || 'Untitled Mask';
+    mask.globalPrompt = document.getElementById('maskGlobalPromptInput').value || '';
+    mask.apiKey = document.getElementById('maskApiKeyInput').value || '';
+    saveMasks();
+    renderMaskList();
+    renderMaskPills();
+    alert('Mask saved.');
+  }
+
+  // ================= RENDER: MASK PILLS =================
+  function renderMaskPills() {
+    var wrap = document.getElementById('maskPillsInner');
+    wrap.innerHTML = '';
+    state.masks.forEach(function (mask) {
+      var pill = document.createElement('div');
+      pill.className = 'mask-pill' + (mask.id === state.activeMaskId ? ' active' : '');
+      pill.textContent = mask.title;
+      pill.addEventListener('click', function () {
+        state.activeMaskId = mask.id;
+        localStorage.setItem(activeKey(), mask.id);
+        renderMaskPills();
+      });
+      wrap.appendChild(pill);
+    });
+  }
+
+  // ================= EXECUTION =================
+  function runAgents(userPrompt, mask) {
+    var key = (mask.apiKey && mask.apiKey.trim()) ? mask.apiKey.trim() : currentKey;
+    if (!key) return Promise.reject(new Error('No OpenRouter API key set. Sign in and add your key.'));
+    var tasks = mask.agents.map(function (agent) {
+      var system = (mask.globalPrompt || '') + '\n\nYour Specific Role: ' + (agent.instructions || '');
+      var url = USE_PROXY ? '/api/chat' : 'https://openrouter.ai/api/v1/chat/completions';
+      var headers = { 'Content-Type': 'application/json' };
+      var body;
+      if (USE_PROXY) {
+        body = JSON.stringify({ userPrompt: userPrompt, mask: mask, key: key });
+      } else {
+        headers['Authorization'] = 'Bearer ' + key;
+        headers['HTTP-Referer'] = location.origin;
+        headers['X-Title'] = 'MUTAYIEB';
+        body = JSON.stringify({ model: agent.model, messages: [{ role: 'system', content: system }, { role: 'user', content: userPrompt }] });
+      }
+      return fetch(url, { method: 'POST', headers: headers, body: body })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) {
+            var m = res.d && res.d.error && res.d.error.message ? res.d.error.message : ('HTTP ' + res.status);
+            return { agentTitle: agent.title, model: agent.model, output: '', error: m };
+          }
+          var choice = res.d.choices && res.d.choices[0] ? res.d.choices[0] : null;
+          var content = choice && choice.message ? choice.message.content : '';
+          return { agentTitle: agent.title, model: agent.model, output: content || '', error: null };
+        })
+        .catch(function (err) { return { agentTitle: agent.title, model: agent.model, output: '', error: err.message }; });
+    });
+    return Promise.all(tasks);
+  }
+  function sendPrompt() {
+    var input = document.getElementById('promptInput');
+    var userPrompt = input.value.trim();
+    if (!userPrompt) return;
+    var mask = getMaskById(state.activeMaskId);
+    if (!mask) { alert('No active Mask selected.'); return; }
+    if (!mask.agents || mask.agents.length === 0) { alert('The active Mask has no agents configured.'); return; }
+    var emptyState = document.getElementById('emptyState');
+    if (emptyState) emptyState.remove();
+    var transcript = document.getElementById('transcript');
+    var bubble = document.createElement('div');
+    bubble.className = 'user-bubble';
+    bubble.textContent = userPrompt;
+    transcript.appendChild(bubble);
+    var loading = document.createElement('div');
+    loading.className = 'loading-status';
+    loading.textContent = '⚡ Running parallel agents across the edge...';
+    transcript.appendChild(loading);
+    transcript.scrollTop = transcript.scrollHeight;
+    input.value = '';
+    var sendBtn = document.getElementById('sendBtn');
+    sendBtn.disabled = true;
+    runAgents(userPrompt, mask).then(function (results) {
+      loading.remove();
+      sendBtn.disabled = false;
+      renderResults(results, userPrompt);
+    }).catch(function (err) {
+      loading.remove();
+      sendBtn.disabled = false;
+      var e = document.createElement('div');
+      e.className = 'agent-error';
+      e.textContent = 'Error: ' + err.message;
+      transcript.appendChild(e);
+    });
+  }
+
+  // ================= RENDER RESULTS =================
+  function renderResults(results, userPrompt) {
+    var transcript = document.getElementById('transcript');
+    reportCounter += 1;
+    var reportId = 'report_' + reportCounter;
+    var block = document.createElement('div');
+    block.className = 'response-block';
+    var toolbar = document.createElement('div');
+    toolbar.className = 'response-toolbar';
+    var pdfBtn = document.createElement('button');
+    pdfBtn.className = 'pdf-btn';
+    pdfBtn.innerHTML = '&#128229; DOWNLOAD COMPLETE MULTI-PAGE PDF REPORT';
+    pdfBtn.addEventListener('click', function () { generatePDF(reportId, userPrompt); });
+    toolbar.appendChild(pdfBtn);
+    block.appendChild(toolbar);
+    var grid = document.createElement('div');
+    grid.className = 'agent-grid';
+    grid.id = reportId;
+    grid.setAttribute('data-user-prompt', userPrompt);
+    results.forEach(function (res) {
+      var card = document.createElement('div');
+      card.className = 'agent-output-card';
+      var titleEl = document.createElement('div');
+      titleEl.className = 'agent-output-title';
+      titleEl.textContent = res.agentTitle;
+      card.appendChild(titleEl);
+      var modelEl = document.createElement('div');
+      modelEl.className = 'agent-output-model';
+      modelEl.textContent = res.model;
+      card.appendChild(modelEl);
+      var bodyEl = document.createElement('div');
+      bodyEl.className = 'agent-output-body mermaid-scope';
+      if (res.error) {
+        var errEl = document.createElement('div');
+        errEl.className = 'agent-error';
+        errEl.textContent = 'Error: ' + res.error;
+        bodyEl.appendChild(errEl);
+      } else {
+        var rendered = window.marked ? window.marked.parse(res.output || '') : esc(res.output || '');
+        bodyEl.innerHTML = rendered;
+      }
+      card.appendChild(bodyEl);
+      grid.appendChild(card);
+    });
+    block.appendChild(grid);
+    transcript.appendChild(block);
+    transcript.scrollTop = transcript.scrollHeight;
+    if (window.mermaid) {
+      try {
+        window.mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+        var mermaidBlocks = grid.querySelectorAll('pre code.language-mermaid, code.language-mermaid');
+        mermaidBlocks.forEach(function (codeEl, i) {
+          var pre = codeEl.closest('pre') || codeEl;
+          var container = document.createElement('div');
+          container.className = 'mermaid';
+          container.textContent = codeEl.textContent;
+          container.id = reportId + '_mermaid_' + i;
+          pre.parentNode.replaceChild(container, pre);
+        });
+        window.mermaid.run({ querySelector: '#' + reportId + ' .mermaid' });
+      } catch (e) { console.error('Mermaid render error', e); }
+    }
+  }
+
+  // ================= PDF GENERATION =================
+  function generatePDF(reportId, userPrompt) {
+    var sourceGrid = document.getElementById(reportId);
+    if (!sourceGrid) return;
+    var printable = document.createElement('div');
+    printable.style.background = '#ffffff';
+    printable.style.color = '#111827';
+    printable.style.padding = '30px';
+    printable.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+    var header = document.createElement('div');
+    header.style.borderBottom = '3px solid #3b82f6';
+    header.style.paddingBottom = '14px';
+    header.style.marginBottom = '20px';
+    header.innerHTML =
+      '<div style="font-size:26px;font-weight:900;color:#0f172a;">MUTAYIEB DOSSIER REPORT</div>' +
+      '<div style="font-size:12px;color:#475569;margin-top:6px;">Generated: ' + new Date().toString() + '</div>' +
+      '<div style="font-size:13px;color:#1e293b;margin-top:10px;"><strong>Prompt:</strong> ' + esc(userPrompt) + '</div>';
+    printable.appendChild(header);
+    var clonedGrid = sourceGrid.cloneNode(true);
+    clonedGrid.style.display = 'block';
+    var cards = clonedGrid.querySelectorAll('.agent-output-card');
+    cards.forEach(function (card) {
+      card.style.background = '#f8fafc';
+      card.style.border = '1px solid #cbd5e1';
+      card.style.color = '#0f172a';
+      card.style.borderRadius = '10px';
+      card.style.padding = '16px';
+      card.style.marginBottom = '18px';
+      card.style.pageBreakInside = 'avoid';
+      card.style.maxHeight = 'none';
+      card.style.overflow = 'visible';
+      var titleEl = card.querySelector('.agent-output-title');
+      if (titleEl) { titleEl.style.color = '#2563eb'; titleEl.style.fontSize = '15px'; }
+      var modelEl = card.querySelector('.agent-output-model');
+      if (modelEl) { modelEl.style.color = '#64748b'; }
+      var bodyEl = card.querySelector('.agent-output-body');
+      if (bodyEl) { bodyEl.style.color = '#111827'; }
+    });
+    var liveMermaidDivs = sourceGrid.querySelectorAll('.mermaid');
+    var clonedMermaidDivs = clonedGrid.querySelectorAll('.mermaid');
+    liveMermaidDivs.forEach(function (liveDiv, i) {
+      var svg = liveDiv.querySelector('svg');
+      var target = clonedMermaidDivs[i];
+      if (svg && target) {
+        var svgClone = svg.cloneNode(true);
+        svgClone.style.maxWidth = '100%';
+        svgClone.style.background = '#ffffff';
+        target.innerHTML = '';
+        target.appendChild(svgClone);
+      }
+    });
+    printable.appendChild(clonedGrid);
+    var footer = document.createElement('div');
+    footer.style.marginTop = '24px';
+    footer.style.borderTop = '1px solid #cbd5e1';
+    footer.style.paddingTop = '10px';
+    footer.style.fontSize = '10px';
+    footer.style.color = '#94a3b8';
+    footer.textContent = 'Generated by MUTAYIEB Multi-Agent Orchestration Engine';
+    printable.appendChild(footer);
+    var opt = {
+      margin: 10,
+      filename: 'MUTAYIEB-Report.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, backgroundColor: '#ffffff', useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'] }
+    };
+    document.body.appendChild(printable);
+    printable.style.position = 'fixed';
+    printable.style.left = '-9999px';
+    printable.style.width = '800px';
+    window.html2pdf().set(opt).from(printable).save().then(function () {
+      document.body.removeChild(printable);
+    }).catch(function (err) {
+      console.error('PDF generation failed', err);
+      document.body.removeChild(printable);
+      alert('PDF generation failed: ' + err.message);
+    });
+  }
+
+  // ================= INIT =================
+  function init() {
+    var restored = getUser();
+    if (restored) {
+      currentUser = restored;
+      document.getElementById('userChip').style.display = 'flex';
+      document.getElementById('userName').textContent = currentUser.name || currentUser.email;
+      if (currentUser.picture) document.getElementById('userAvatar').src = currentUser.picture;
+      document.getElementById('signOutBtn').style.display = 'block';
+      document.getElementById('loginOverlay').classList.add('hidden');
+      currentKey = localStorage.getItem(keyStorage()) || '';
+      var cached = localStorage.getItem(modelsKey());
+      if (cached) { try { state.availableModels = JSON.parse(cached); } catch (e) {} }
+      loadMasks();
+      renderMaskList();
+      renderMaskPills();
+      if (!currentKey) {
+        openKeyModal();
+      } else {
+        setStatus('OpenRouter connected');
+        syncModelsSilent();
+      }
+    } else {
+      initGoogle();
+    }
+
+    document.getElementById('drawerToggle').addEventListener('click', function () {
+      document.getElementById('drawer').classList.toggle('collapsed');
+    });
+    document.getElementById('newMaskBtn').addEventListener('click', createNewMask);
+    document.getElementById('newMaskPill').addEventListener('click', createNewMask);
+    document.getElementById('addAgentBtn').addEventListener('click', addAgent);
+    document.getElementById('saveMaskBtn').addEventListener('click', saveMaskForm);
+    document.getElementById('syncModelsBtn').addEventListener('click', syncModels);
+    document.getElementById('sendBtn').addEventListener('click', sendPrompt);
+    document.getElementById('guestBtn').addEventListener('click', function () {
+      var name = prompt('Enter your name (stored locally only):') || 'Guest';
+      currentUser = { sub: 'guest', name: name, email: '', picture: '' };
+      localStorage.setItem(STORAGE_PREFIX + 'user', JSON.stringify(currentUser));
+      afterLogin();
+    });
+    document.getElementById('signOutBtn').addEventListener('click', signOut);
+    document.getElementById('saveKeyBtn').addEventListener('click', saveKey);
+    document.getElementById('promptInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendPrompt(); }
+    });
+    if (window.mermaid) { window.mermaid.initialize({ startOnLoad: false, theme: 'dark' }); }
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
+</body>
+</html>
