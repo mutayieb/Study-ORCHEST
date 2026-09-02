@@ -530,5 +530,83 @@ async function run(){
   var blk=document.createElement('div');blk.className='rblock';
 
   var head=document.createElement('div');head.className='
+      var head=document.createElement('div');head.className='rhead';
+  head.innerHTML='<div class="rlabel serif">Squad Dossier</div>';
+  var pb=document.createElement('button');
+  pb.className='btn green sm';
+  pb.innerHTML='&#128228; Download Full PDF Report';
+  pb.addEventListener('clickfunction(){pdf(blk);});
+  head.appendChild(pb);
+  blk.appendChild(head);
 
-> ⚠️ The response reached the length limit. Reply **continue** to get the rest.
+  var g=document.createElement('div');g.className='grid';
+  results.forEach(function(r){
+    var c=document.createElement('div');c.className='aout';
+    c.innerHTML='<div class="tt">'+esc(r.agentTitle)+'</div><div class="mm">'+esc(r.model)+'</div><div class="bd">'+
+      (r.error?'<div class="err">'+esc(r.error)+'</div>':marked.parse(r.output||''))+'</div>';
+    g.appendChild(c);
+  });
+  blk(g);
+  tr.appendChild(blk);
+
+  if(window.mermaid){
+    try{
+      mermaid.initialize({startOnLoad:false,theme:'neutral',securityLevel:'loose'});
+      mermaid.run({nodes:blk.querySelectorAll('.mermaid')}).catch(function(){});
+    }catch(e){}
+  }
+}
+
+async function pdf(blk){
+  toast('Building your PDF dossier…');
+  var clone=blk.cloneNode(true);
+  var h=clone.querySelector('.rhead');if(h)h.remove();
+  var w=document.createElement('div');
+  w.innerHTML='<div style="text-align:center;border-bottom:3px solid #111;padding-bottom:12px;margin-bottom:22px;">'+
+    '<h1 style="margin:0;font-size:24px;letter-spacing:3px;font-family:Georgia,serif;">MUTAYIEB DOSSIER REPORT</h1>'+
+    '<div style="font-size:11px;color:#555;margin-top:6px;">Generated: '+new Date().toLocaleString()+'</div></div>';
+  w.appendChild(clone);
+  var st=document.createElement('style');
+  st.textContent='#pdfw *{color:#111!important;background:#fff!important}'+
+    '#pdfw pre{background:#f4f4f4!important;border:1px solid #ddd}'+
+    '#pdfw code{background:#f4f4f4!important;color:#111!important}'+
+    '#pdfw .aout{border:1px solid #ccc;border-radius:8px;padding:12px;margin-bottom:14px;page-break-inside:avoid;box-shadow:none}'+
+    '#pdfw .tt{color:#b5552f!important;font-weight:bold}'+
+    '#pdfw table{border-collapse:collapse;width:100%}'+
+    '#pdfw th,#pdfw td{border:1px solid #999;padding:4px 6px;font-size:11px}'+
+    '#pdfw .err{background:#fdd!important;color:#900!important}';
+  w.id='pdfw';
+  w.style.cssText='position:fixed;left:-9999px;top:0;width:800px;background:#fff;color:#111;font-family:Georgia,Arial,serif;font-size:12px;';
+ .appendChild(st);
+  document.body.appendChild(w);
+  try{
+    await html2pdf().set({
+      margin:[12,12,14,12],
+      filename:'MUTAYIEB-Dossier.pdf',
+      image:{type:'jpeg',quality:.95},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+      pagebreak:{mode:['css','']}
+    }).from(w).save();
+    toast('PDF downloaded.','ok');
+  }catch(e){
+    toast('PDF failed: '+e.message,'err');
+  }finally{
+    document.body.removeChild(w);
+  }
+}
+
+/* ================= INIT ================= */
+(window.mermaid)mermaid.initialize({startOnLoad:false,theme:'neutral',securityLevel:'loose'});
+if(window.marked)marked.setOptions({breaks:true,gfm:true});
+load();
+updKeyBtn();
+renderMasks();
+renderPills();
+renderEditor();
+})();
+</script>
+</body>
+</html>
+
+
